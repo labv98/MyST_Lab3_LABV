@@ -85,3 +85,38 @@ def f_columnas_pips(param_data):
     param_data["Pips_acm"] = param_data["Pips"].cumsum()
     param_data["Profit_acm"] = param_data["Profit"].cumsum()
     return param_data
+
+
+def f_estadisticas_ba(param_data):
+    """Función que se le indica la data con la que se está trabajando y regresa 2 tablas,
+    una que muestra las operaciones ganadoras y perdedoras así como sus efectividades y la otra
+    regresa el raking en porcentaje propio de las operaciones realizadas."""
+    d1 = {'Ops totales': len(param_data),
+          'Ganadoras': len(param_data[param_data["Profit"] >= 0]),
+          'Ganadoras_c': len(param_data[(param_data["Profit"] >= 0) & (param_data["Type"] == "buy")]),
+          'Ganadoras_v': len(param_data[(param_data["Profit"] >= 0) & (param_data["Type"] == "sell")]),
+          'Perdedoras': len(param_data[param_data["Profit"] <= 0]),
+          'Perdedoras_c': len(param_data[(param_data["Profit"] <= 0) & (param_data["Type"] == "buy")]),
+          'Perdedoras_v': len(param_data[(param_data["Profit"] <= 0) & (param_data["Type"] == "sell")]),
+          'Mediana_profit': (np.percentile(param_data["Profit"], 50)),
+          'Mediana_pips': (np.percentile(param_data["Pips"], 50))}
+    d1_b = {'r_efectividad': d1['Ganadoras'] / d1['Ops totales'],
+            'r_proporcion': d1['Ganadoras'] / d1['Perdedoras'],
+            'r_efectividad_c': d1['Ganadoras_c'] / d1['Ops totales'],
+            'r_efectividad_v': d1['Ganadoras_v'] / d1['Ops totales']}
+    df_1 = pd.DataFrame.from_dict(d1, orient='index', columns=['Valor'])
+    df_2 = pd.DataFrame.from_dict(d1_b, orient='index', columns=['Valor'])
+    df_1_tabla = pd.concat([df_1, df_2], ignore_index=False)
+
+    sym = np.array(param_data["Symbol"])
+    a = [(len(param_data[(param_data["Profit"] > 0) & (param_data["Symbol"] == sym[i])]) / len(
+        param_data[param_data["Symbol"] == sym[i]])) for i in range(len(sym))]
+    d2 = {'Symbol': sym,
+          'Rank%': np.array(a) * 100}
+    df_2_ranking = pd.DataFrame.from_dict(d2)
+
+    tables = {'df_1_tabla': df_1_tabla,
+              'df_2_ranking': df_2_ranking}
+
+    return tables
+
