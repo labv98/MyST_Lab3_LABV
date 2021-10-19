@@ -1,11 +1,11 @@
 
 """
 # -- --------------------------------------------------------------------------------------------------- -- #
-# -- project: Estas son las funciones que se necesitan para el laboratorio 3 de MyST                                                         -- #
+# -- project: Estas son las funciones que se necesitan para el laboratorio 3 de MyST                     -- #
 # -- script: functions.py : python script with general functions                                         -- #
 # -- author: labv98                                                                  -- #
 # -- license: GPL-3.0 License                                                                            -- #
-# -- repository: https://github.com/labv98/MyST_Lab3_LABV.git                                                                    -- #
+# -- repository: https://github.com/labv98/MyST_Lab3_LABV.git                                            -- #
 # -- --------------------------------------------------------------------------------------------------- -- #
 """
 
