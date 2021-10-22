@@ -120,3 +120,41 @@ def f_estadisticas_ba(param_data):
 
     return tables
 
+
+def f_estadisticas_mad(param_data):
+    # Sharpe ratio original
+    ret = f_evolucion_capital(param_data)['profit_acm_d'].pct_change().dropna()
+    mean_ret = np.mean(ret)
+    rf = 0.05
+    desvest = np.std(ret)
+    sharpe_rat = (mean_ret - rf)/desvest
+    # Sharpe ratio actualizado
+    r_trader = mean_ret
+    benchmarck = yf.download("^GSPC", start=f_evolucion_capital(positions)['timestamp'].iloc[0], end=f_evolucion_capital(positions)['timestamp'].iloc[-1])
+    ret_bench = benchmarck['Adj Close'].pct_change().dropna()
+    r_benchmarck = np.mean(ret_bench)
+    desvest_shactual = np.std(r_trader-r_benchmarck)
+    sharpe_rat_actual = (r_trader - r_benchmarck)/desvest_shactual
+    # Drawdown
+    drawdown_cap = param_data['Profit'].min()
+    a = param_data['Time'].where(param_data['Profit'] == drawdown_cap).dropna()
+    b = param_data['Time_2'].where(param_data['Profit'] == drawdown_cap).dropna()
+    # Drawup
+    drawup_cap = param_data['Profit'].max()
+    c = param_data['Time'].where(param_data['Profit'] == drawup_cap).dropna()
+    d = param_data['Time_2'].where(param_data['Profit'] == drawup_cap).dropna()
+    # Iniciar con las listas de los datos
+    est_mad = {'Métrica' : ['sharpe_original', 'sharpe_actualizado', 'drawdown_capi', 'drawdown_capi',
+                          'drawdown_capi', 'drawup_capi', 'drawup_capi', 'drawup_capi'],
+               '' : ['Cantidad', 'Cantidad', 'Fecha Inicial', 'Fecha Final',
+                   'DrawDown $ (capital)', 'Fecha Inicial', 'Fecha Final', 'DrawUp $ (capital)'],
+               'Valor' : [sharpe_rat, sharpe_rat_actual, a.iloc[0], b.iloc[0], drawdown_cap,
+                         c.iloc[0], d.iloc[0], drawup_cap],
+               'Descripción' : ['Sharpe Ratio Fórmula Original', 'Sharpe Ratio Fórmula Ajustada',
+                               'Fecha inicial del DrawDown de Capital', 'Fecha final del DrawDown de Capital',
+                               'Máxima pérdida flotante registrada', 'Fecha inicial del DrawUp de Capital',
+                               'Fecha final del DrawUp de Capital', 'Máxima ganancia flotante registrada']
+              }
+    # Crear DataFrame
+    df_est_mad = pd.DataFrame(est_mad)
+    return df_est_mad
