@@ -16,7 +16,7 @@ import MetaTrader5 as mt5
 from datetime import datetime
 import yfinance as yf
 
-# ----PARTE 1 ESTADÍSTICA DESCRIPTIVA----
+# ---- PARTE 1 ESTADÍSTICA DESCRIPTIVA ----
 
 
 def f_initialize(path, login, password, server):
@@ -120,6 +120,22 @@ def f_estadisticas_ba(param_data):
 
     return tables
 
+# ---- PARTE 2  MÉTRICAS DE ATRIBUCIÓN AL DESEMPEÑO ----
+
+# Pasar la fecha a formato Y,m,d (fuera de la función porque solo se convierte una vez)
+positions['Time_1'] = [i.strftime('%Y-%m-%d') for i in positions['Time_1']]
+
+def f_evolucion_capital(param_data):
+    """Función a la que se le ingresa el data en análisis y regresa un DataFrame
+    que incluye las fechas que se tuvieron de operación, las ganancias y las
+    ganancias acumuladas en esos periodos."""
+    # Quitando fines de semana
+    pd.bdate_range(start=param_data['Time_1'].iloc[0], end=param_data['Time_1'].iloc[-1], freq="B")
+    # Groupby para seleccionar las fechas concatenadas
+    sum_profits = param_data.groupby(['Time_1']).agg({'Profit': 'sum'}).reset_index()
+    sum_profits['profit_acm_d'] = sum_profits['Profit'].cumsum()+100000
+    sum_profits.columns = ['timestamp', 'profit_d', 'profit_acm_d']
+    return sum_profits
 
 def f_estadisticas_mad(param_data):
     # Sharpe ratio original
@@ -158,3 +174,133 @@ def f_estadisticas_mad(param_data):
     # Crear DataFrame
     df_est_mad = pd.DataFrame(est_mad)
     return df_est_mad
+
+# ---- PARTE 3  BEHAVIORAL FINANCE ----
+
+positions['Time_2'] = [i.strftime("%Y/%m/%d, %H:%M:%S") for i in positions['Time_2']]
+
+
+def f_be_de(param_data):
+    param_data["Ratio"] = (param_data["Profit"] / param_data["Profit_acm"]) * 100
+    ganadoras = param_data[param_data["Profit"] > 0]
+    anclas = pd.DataFrame(ganadoras)
+    df_gan = []
+    ocurrencias = []
+    for i in range(len(anclas)):
+        ocu = param_data[(param_data["Time"] <= anclas["Time_2"][i])
+                         & (param_data["Time_2"] > anclas["Time_2"][i])
+                         & (param_data["Profit"] < 0)]
+        df_gan.append(ocu)
+        ocurrencias.append(len(ocu))
+
+    sub = []
+    for i in range(len(df_gan)):
+        a = df_gan[i]
+        b = a[a.Profit == a["Profit"].min()]
+        sub.append(b)
+    df_uni_ancla = pd.concat(sub)
+
+    # DataFrame de las anclas como se pide
+    df_anclas = pd.DataFrame(anclas, columns=["Profit", "Ratio"])
+
+    anclas["Time_2"] = pd.to_datetime(anclas["Time_2"])
+    pf = []
+    for i in range(len(df_uni_ancla)):
+        for j in range(len(anclas)):
+            price = mt5.copy_ticks_from(df_uni_ancla["Symbol"][i],
+                                        anclas["Time_2"][j],
+                                        1,
+                                        mt5.TIMEFRAME_M5)
+
+        if df_uni_ancla["Type"][j] == "buy":
+            p_f = price[0][1]
+        else:
+            p_f = price[0][2]
+        pf.append(p_f)
+    df_uni_ancla["Price_down"] = pf
+
+    def f_pips2(df_uni_ancla):
+        df_uni_ancla["Pips2"] = [(df_uni_ancla['Price_down'].iloc[i] - df_uni_ancla['Price'].iloc[i]) * f_pip_size(
+            df_uni_ancla['Symbol'].iloc[i])
+                                 if df_uni_ancla['Type'].iloc[i] == 'buy'
+                                 else (df_uni_ancla['Price'].iloc[i] - df_uni_ancla['Price_down'].iloc[i]) * f_pip_size(
+            df_uni_ancla['Symbol'].iloc[i])
+                                 for i in range(len(df_uni_ancla))]
+        return df_uni_ancla
+
+    perdedoras = f_pips2(df_uni_ancla)
+    perdedoras["Profit_perdedora"] = (perdedoras["Profit"] / perdedoras["Pips"]) * perdedoras["Pips2"]
+    perdedoras = perdedoras[perdedoras["Profit_perdedora"] < 0]
+
+    status_quo = []
+    aversion_per = []
+
+    for i in range(len(perdedoras)):
+        if perdedoras["Profit_perdedora"][i] / anclas["Profit_acm"][i] < anclas["Profit"][i] / anclas["Profit_acm"][i]:
+            status_quo.append(1)
+        else:
+            status_quo.append(0)
+        if perdedoras["Profit_perdedora"][i] / anclas["Profit"][i] > 2:
+            aversion_per.append(1)
+        else:
+            aversion_per.append(0)
+
+        sens_decreciente = 0
+        if anclas["Profit_acm"][0] < anclas["Profit_acm"][-1]:
+            sens_decreciente += 1
+        if anclas["Profit"][-1] > anclas["Profit"][0] and perdedoras["Profit_perdedora"][-1] > \
+                perdedoras["Profit_perdedora"][0]:
+            sens_decreciente += 1
+        if perdedoras["Profit_perdedora"][-1] / anclas["Profit"][-1] > 2:
+            sens_decreciente += 1
+        if sens_decreciente >= 2:
+            sens_dec_comp = "Tiene sensibilidad decreciente"
+        else:
+            sens_dec_comp = "No tiene sensibilidad decreciente"
+
+        # Sensibilidad para la gráfica 3
+        total_sen = 0
+        for i in range(1, len(perdedoras)):
+            sen_graf = 0
+            if anclas["Profit_acm"][i - 1] < anclas["Profit_acm"][i]:
+                sen_graf += 1
+            if anclas["Profit"][i] > anclas["Profit"][i - 1] and perdedoras["Profit_perdedora"][i] > \
+                    perdedoras["Profit_perdedora"][i - 1]:
+                sen_graf += 1
+            if perdedoras["Profit_perdedora"][i] / anclas["Profit"][i] > 2:
+                sen_graf += 1
+            if sen_graf >= 2:
+                total_sen += 1
+            else:
+                total_sen = total_sen
+
+        d = {'Ocurrencias': len(ocurrencias),
+             'Status_quo': round((np.array(status_quo).sum() / len(status_quo) * 100), 2).astype(str) + "%",
+             'Aversión_perdida': (np.array(aversion_per).sum() / len(aversion_per) * 100).astype(str) + "%",
+             'Sensibilidad_decreciente': sens_dec_comp}
+
+        dic = {"Ocurrencias": {
+            "Cantidad": len(ocurrencias)}}
+        for i in range(len(anclas)):
+            dic[f"Ocurrencia_{i + 1}"] = {'Timestamp': [anclas["Time_2"][i]],
+                                          'Operaciones': {
+                                              'Ganadora': {
+                                                  'Instrumento': anclas['Symbol'][i],
+                                                  'Volumen': anclas['Volume'][i],
+                                                  'Sentido': anclas['Type'][i],
+                                                  'Profit_ganadora': anclas["Profit"][i]},
+                                              'Perdedora': {
+                                                  'Instrumento': perdedoras['Symbol'][i],
+                                                  'Volumen': perdedoras['Volume'][i],
+                                                  'Sentido': perdedoras['Type'][i],
+                                                  'Profit_perdedora': perdedoras["Profit_perdedora"][i]},
+
+                                              'Ratio_cp_profit_acm': {perdedoras["Profit_perdedora"][i] /
+                                                                      anclas["Profit_acm"][i]},
+                                              'Ratio_cg_profit_acm': {anclas["Profit"][i] /
+                                                                      anclas["Profit_acm"][i]},
+                                              'Ratio_cp_cg': {perdedoras["Profit_perdedora"][i] /
+                                                              anclas["Profit"][i]}
+                                          }}
+        dic["df"] = {'Dataframe': d}
+    return dic, status_quo, aversion_per, total_sen
