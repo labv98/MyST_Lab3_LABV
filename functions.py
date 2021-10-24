@@ -138,6 +138,9 @@ def f_evolucion_capital(param_data):
     return sum_profits
 
 def f_estadisticas_mad(param_data):
+    """Función que retorna los ratios de Sharpe y el DrawUp y DrawDown en las fechas
+    donde se presentó la mayor o menor pérdida flotante según correspónda.
+    Esta función retorna un DataFrame con esa información de manera muy visual y explicativa."""
     # Sharpe ratio original
     ret = f_evolucion_capital(param_data)['profit_acm_d'].pct_change().dropna()
     mean_ret = np.mean(ret)
@@ -183,7 +186,6 @@ def f_be_de(param_data):
     """Función que regresa el diccionario con la información pertinente al behavioral finance por cada
     ocurrencia que se presenta en el archivo del usuario. Asimismo regresa valores que se utilizarán más
     tarde en la creación de las visualizaciones."""
-
     param_data["Ratio"] = (param_data["Profit"] / param_data["Profit_acm"]) * 100
     ganadoras = param_data[param_data["Profit"] > 0]
     anclas = pd.DataFrame(ganadoras)
