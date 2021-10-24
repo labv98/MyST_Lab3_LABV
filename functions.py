@@ -155,7 +155,7 @@ def f_estadisticas_mad(param_data):
     sharpe_rat = (mean_ret - rf)/desvest
     # Sharpe ratio actualizado
     r_trader = mean_ret
-    benchmarck = yf.download("^GSPC", start=f_evolucion_capital(positions)['timestamp'].iloc[0], end=f_evolucion_capital(positions)['timestamp'].iloc[-1])
+    benchmarck = yf.download("^GSPC", start=f_evolucion_capital(param_data)['timestamp'].iloc[0], end=f_evolucion_capital(param_data)['timestamp'].iloc[-1])
     ret_bench = benchmarck['Adj Close'].pct_change().dropna()
     r_benchmarck = np.mean(ret_bench)
     desvest_shactual = np.std(r_trader-r_benchmarck)

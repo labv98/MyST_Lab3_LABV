@@ -9,6 +9,7 @@
 # -- --------------------------------------------------------------------------------------------------- -- #
 """
 import plotly.graph_objects as go
+from functions import *
 
 def graf_1(param_data):
     labels = f_estadisticas_ba(param_data)['df_2_ranking']["Symbol"].to_list()
@@ -40,6 +41,7 @@ def graf_2(param_data):
     return fig.show()
 
 def graf_3(param_data):
+    dic, status_quo, aversion_per, total_sen = f_be_de(param_data)
     d_e = ['status_quo', 'aversion_perdida', 'sensibilidad_decreciente']
     fig = go.Figure(data=[
           go.Bar(name='Sí', x=d_e, y=[np.array(status_quo).sum(),
