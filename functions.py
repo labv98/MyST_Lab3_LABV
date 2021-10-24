@@ -86,6 +86,15 @@ def f_columnas_pips(param_data):
     param_data["Profit_acm"] = param_data["Profit"].cumsum()
     return param_data
 
+def f_columnas_tiempos(param_data):
+    """Función que regresa una columna que incluye el valor en segundos
+    en los que transcurrio cierta operación"""
+    param_data['Time'] = param_data.index
+    param_data['Time_1'] = pd.to_datetime(param_data['Time'])
+    param_data['Time_2'] = pd.to_datetime(param_data["Time.1"])
+    param_data['Get_time'] = (param_data['Time_2']-param_data['Time_1']).dt.total_seconds()
+    return pd.DataFrame(param_data['Get_time'])
+
 
 def f_estadisticas_ba(param_data):
     """Función que se le indica la data con la que se está trabajando y regresa 2 tablas,
@@ -121,9 +130,6 @@ def f_estadisticas_ba(param_data):
     return tables
 
 # ---- PARTE 2  MÉTRICAS DE ATRIBUCIÓN AL DESEMPEÑO ----
-
-# Pasar la fecha a formato Y,m,d (fuera de la función porque solo se convierte una vez)
-positions['Time_1'] = [i.strftime('%Y-%m-%d') for i in positions['Time_1']]
 
 def f_evolucion_capital(param_data):
     """Función a la que se le ingresa el data en análisis y regresa un DataFrame
@@ -179,8 +185,6 @@ def f_estadisticas_mad(param_data):
     return df_est_mad
 
 # ---- PARTE 3  BEHAVIORAL FINANCE ----
-
-positions['Time_2'] = [i.strftime("%Y/%m/%d, %H:%M:%S") for i in positions['Time_2']]
 
 def f_be_de(param_data):
     """Función que regresa el diccionario con la información pertinente al behavioral finance por cada
