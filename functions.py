@@ -179,8 +179,11 @@ def f_estadisticas_mad(param_data):
 
 positions['Time_2'] = [i.strftime("%Y/%m/%d, %H:%M:%S") for i in positions['Time_2']]
 
-
 def f_be_de(param_data):
+    """Función que regresa el diccionario con la información pertinente al behavioral finance por cada
+    ocurrencia que se presenta en el archivo del usuario. Asimismo regresa valores que se utilizarán más
+    tarde en la creación de las visualizaciones."""
+
     param_data["Ratio"] = (param_data["Profit"] / param_data["Profit_acm"]) * 100
     ganadoras = param_data[param_data["Profit"] > 0]
     anclas = pd.DataFrame(ganadoras)
